@@ -21,7 +21,7 @@ Gtk.Application.Init ();
 //     sb.ShowAll();
 // }
 
-HyprlandService hyprlandService = new();
+Hyprland hyprlandService = Hyprland.Instance;
 
 
 Gtk.Application.Run();
