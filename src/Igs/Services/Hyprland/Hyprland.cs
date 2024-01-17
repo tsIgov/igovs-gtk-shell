@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
 
 namespace Igs.Services.Hyprland;
@@ -10,7 +12,10 @@ public class Hyprland : IDisposable
         get 
         {
             if (_instance == null)
+            {
                 _instance = new Hyprland();
+                _instance.initialize();
+            }
 
             return _instance;
         }
@@ -19,7 +24,9 @@ public class Hyprland : IDisposable
     private Socket _socket;
     private CancellationTokenSource _cancellationTokenSource = new ();
 
-    public IHyprlandState State { get; }
+    public string Signature { get; private set; }
+
+    public IHyprlandState State { get; private set; }
 
     #region Window Events
     /// <summary>
@@ -114,16 +121,47 @@ public class Hyprland : IDisposable
 
     private Hyprland()
     {
-        State = new HyprlandState();
-        _socket = new (AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        _socket = new(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
         _socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
+        Signature = getSignature();
 
+        // It will be initialized right after the constructor but it requres an existing instance of this class to exist already.
+        State = null!;
+    }
+
+    private void initialize()
+    {
+        State = new HyprlandState();
         startListeningForSignals();
+    }
+
+    private string getSignature()
+    {
+        ProcessStartInfo psi = new("bash")
+        {
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            Arguments = "-c \"echo $HYPRLAND_INSTANCE_SIGNATURE\""
+        };
+
+        Process process = new() { StartInfo = psi };
+        process.Start();
+
+        string output = process.StandardOutput.ReadToEnd().Trim();
+        process.WaitForExit();
+
+        if (string.IsNullOrWhiteSpace(output))
+            throw new InvalidOperationException("Hyprland session not found");
+
+        return output;
     }
 
     private void startListeningForSignals()
     {
-        string socketPath = $"/tmp/hypr/{State.InstanceSignature}/.socket2.sock";
+        string socketPath = $"/tmp/hypr/{Signature}/.socket2.sock";
         UnixDomainSocketEndPoint endPoint = new (socketPath);
         _socket.Connect(endPoint);
 

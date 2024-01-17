@@ -2,8 +2,6 @@ namespace Igs.Services.Hyprland;
 
 public interface IHyprlandState
 {
-    string InstanceSignature { get; }
-
     Workspace ActiveWorkspace { get; }
     Window? ActiveWindow { get; }
 

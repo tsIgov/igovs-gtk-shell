@@ -14,16 +14,11 @@ Gtk.Application.Init ();
 // Gtk.StyleContext.AddProviderForScreen(Gdk.Screen.Default, provider2, 0);
 
 
-// for (int i = 0; i < Gdk.Display.Default.NMonitors; i++)
-// {
-//     Gdk.Monitor monitor = Gdk.Display.Default.GetMonitor(i);
-//     Statusbar sb = new(monitor);
-//     sb.ShowAll();
-// }
-
-Hyprland hyprlandService = Hyprland.Instance;
-
+for (int i = 0; i < Gdk.Display.Default.NMonitors; i++)
+{
+	Gdk.Monitor monitor = Gdk.Display.Default.GetMonitor(i);
+	Statusbar sb = new(monitor);
+	sb.ShowAll();
+}
 
 Gtk.Application.Run();
-
-

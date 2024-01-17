@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
 using System.Text.Json;
@@ -11,8 +10,6 @@ public class HyprlandState : IHyprlandState
     private Dictionary<string, Window> _windows;
     private Dictionary<string, Workspace> _workspaces;
 
-    public string InstanceSignature { get; }
-
     public IEnumerable<Monitor> Monitors => _monitors.Values;
     public IEnumerable<Workspace> Workspaces => _workspaces.Values;
     public IEnumerable<Window> Windows => _windows.Values;
@@ -22,50 +19,27 @@ public class HyprlandState : IHyprlandState
 
     internal HyprlandState()
     {
-        InstanceSignature = getHyprlandInstanceSignature();
-
-        if (string.IsNullOrWhiteSpace(InstanceSignature))
-            throw new InvalidOperationException("Hyprland session not found");
-
         Refresh();
-    }
-    
-    private string getHyprlandInstanceSignature()
-    {
-        ProcessStartInfo psi = new("bash")
-        {
-            RedirectStandardInput = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            Arguments = "-c \"echo $HYPRLAND_INSTANCE_SIGNATURE\""
-        };
-
-        Process process = new () { StartInfo = psi };
-        process.Start();
-
-        string output = process.StandardOutput.ReadToEnd().Trim();
-        process.WaitForExit();
-
-        return output;
     }
 
     [MemberNotNull(nameof(_monitors), nameof(_windows), nameof(_workspaces), nameof(ActiveWorkspace))]
     public IHyprlandState Refresh()
     {
-        HyprctlMonitor[] hyprctlMonitors = getHyprctlData<HyprctlMonitor[]>("monitors");
-        HyprctlWindow[] hyprctlWindows = getHyprctlData<HyprctlWindow[]>("clients");
-        HyprctlWorkspace[] hyprctlWorkspaces = getHyprctlData<HyprctlWorkspace[]>("workspaces");
+        HyprctlMonitor[] hyprctlMonitors = Hyprctl.Query<HyprctlMonitor[]>("monitors");
+        HyprctlWindow[] hyprctlWindows = Hyprctl.Query<HyprctlWindow[]>("clients");
+        HyprctlWorkspace[] hyprctlWorkspaces = Hyprctl.Query<HyprctlWorkspace[]>("workspaces");
 
         _monitors = new(hyprctlMonitors.Select(m => new KeyValuePair<int, Monitor>(m.Id, m.Map())));
         _windows = new(hyprctlWindows.Select(w => new KeyValuePair<string, Window>(w.Address, w.Map())));
         _workspaces = new(hyprctlWorkspaces.Select(ws => new KeyValuePair<string, Workspace>(ws.Name, ws.Map())));
 
+        foreach (var ws in _workspaces)
+            Console.WriteLine($"{ws.Value.Id} | {ws.Value.Name}");
+
         fillReferences(hyprctlMonitors, hyprctlWindows, hyprctlWorkspaces);
 
-        HyprctlWorkspace hyprctlActiveWorkspace = getHyprctlData<HyprctlWorkspace>("activeworkspace");
-        HyprctlWindow hyprctlActiveWindow = getHyprctlData<HyprctlWindow>("activewindow");
+        HyprctlWorkspace hyprctlActiveWorkspace = Hyprctl.Query<HyprctlWorkspace>("activeworkspace");
+        HyprctlWindow hyprctlActiveWindow = Hyprctl.Query<HyprctlWindow>("activewindow");
 
         ActiveWorkspace = _workspaces[hyprctlActiveWorkspace.Name];
 
@@ -76,25 +50,7 @@ public class HyprlandState : IHyprlandState
 
         return this;
     }
-    private T getHyprctlData<T>(string command)
-    {
-        string socketPath = $"/tmp/hypr/{InstanceSignature}/.socket.sock";
-        UnixDomainSocketEndPoint endpoint = new (socketPath);
-        using Socket socket = new (AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
-        socket.Connect(endpoint);
 
-        using NetworkStream stream = new(socket);
-        using StreamWriter writer = new(stream);
-        using StreamReader reader = new(stream);
-        
-        writer.Write($"j/{command}");
-        writer.Flush();
-        string rawResponse = reader.ReadToEnd();
-        socket.Close();
-
-        T response = JsonSerializer.Deserialize<T>(rawResponse, new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
-        return response;
-    }
     private void fillReferences(HyprctlMonitor[] hyprctlMonitors, HyprctlWindow[] hyprctlWindows, HyprctlWorkspace[] hyprctlWorkspaces)
     {
         foreach(HyprctlWindow window in hyprctlWindows)

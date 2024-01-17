@@ -1,4 +1,5 @@
 using Gtk;
+using Igs.Widgets;
 
 public class Statusbar : Window
 {
@@ -20,18 +21,7 @@ public class Statusbar : Window
         Box box = new(Orientation.Horizontal, 10);
         Add(box);
 
-        Button button = new Button ("Hit me left");
-        button.Clicked += (_,_) => { Console.WriteLine("Button pressed"); };
-
-        Button button2 = new Button ("Hit me right");
-        button2.Clicked += (_,_) => { Console.WriteLine("Button pressed"); };
-
-        Button button3 = new Button ("Hit me center");
-        button2.Clicked += (_,_) => { Console.WriteLine("Button pressed"); };
-
-        box.PackStart(button, true, true, 0);
-        box.PackEnd(button2, false, false, 20);
-        box.CenterWidget = button3;
+        box.CenterWidget = new Workspaces();
 
 
     }
