@@ -1,6 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Net.Sockets;
-using System.Text.Json;
 
 namespace Igs.Services.Hyprland;
 
@@ -25,21 +23,21 @@ public class HyprlandState : IHyprlandState
     [MemberNotNull(nameof(_monitors), nameof(_windows), nameof(_workspaces), nameof(ActiveWorkspace))]
     public IHyprlandState Refresh()
     {
-        HyprctlMonitor[] hyprctlMonitors = Hyprctl.Query<HyprctlMonitor[]>("monitors");
-        HyprctlWindow[] hyprctlWindows = Hyprctl.Query<HyprctlWindow[]>("clients");
-        HyprctlWorkspace[] hyprctlWorkspaces = Hyprctl.Query<HyprctlWorkspace[]>("workspaces");
+        Monitor.Hyprctl[] hyprctlMonitors = Hyprctl.Query<Monitor.Hyprctl[]>("monitors");
+        Window.Hyprctl[] hyprctlWindows = Hyprctl.Query<Window.Hyprctl[]>("clients");
+        Workspace.Hyprctl[] hyprctlWorkspaces = Hyprctl.Query<Workspace.Hyprctl[]>("workspaces");
 
-        _monitors = new(hyprctlMonitors.Select(m => new KeyValuePair<int, Monitor>(m.Id, m.Map())));
-        _windows = new(hyprctlWindows.Select(w => new KeyValuePair<string, Window>(w.Address, w.Map())));
-        _workspaces = new(hyprctlWorkspaces.Select(ws => new KeyValuePair<string, Workspace>(ws.Name, ws.Map())));
+        _monitors = new(hyprctlMonitors.Select(m => new KeyValuePair<int, Monitor>(m.Id, new Monitor(m))));
+        _windows = new(hyprctlWindows.Select(w => new KeyValuePair<string, Window>(w.Address, new Window(w))));
+        _workspaces = new(hyprctlWorkspaces.Select(ws => new KeyValuePair<string, Workspace>(ws.Name, new Workspace(ws))));
 
         foreach (var ws in _workspaces)
             Console.WriteLine($"{ws.Value.Id} | {ws.Value.Name}");
 
         fillReferences(hyprctlMonitors, hyprctlWindows, hyprctlWorkspaces);
 
-        HyprctlWorkspace hyprctlActiveWorkspace = Hyprctl.Query<HyprctlWorkspace>("activeworkspace");
-        HyprctlWindow hyprctlActiveWindow = Hyprctl.Query<HyprctlWindow>("activewindow");
+        Workspace.Hyprctl hyprctlActiveWorkspace = Hyprctl.Query<Workspace.Hyprctl>("activeworkspace");
+        Window.Hyprctl hyprctlActiveWindow = Hyprctl.Query<Window.Hyprctl>("activewindow");
 
         ActiveWorkspace = _workspaces[hyprctlActiveWorkspace.Name];
 
@@ -51,9 +49,9 @@ public class HyprlandState : IHyprlandState
         return this;
     }
 
-    private void fillReferences(HyprctlMonitor[] hyprctlMonitors, HyprctlWindow[] hyprctlWindows, HyprctlWorkspace[] hyprctlWorkspaces)
+    private void fillReferences(Monitor.Hyprctl[] hyprctlMonitors, Window.Hyprctl[] hyprctlWindows, Workspace.Hyprctl[] hyprctlWorkspaces)
     {
-        foreach(HyprctlWindow window in hyprctlWindows)
+        foreach (Window.Hyprctl window in hyprctlWindows)
         {
             if (_monitors.TryGetValue(window.Monitor, out Monitor? monitor))
                 _windows[window.Address].Monitor = monitor;
@@ -62,7 +60,7 @@ public class HyprlandState : IHyprlandState
                 _windows[window.Address].Workspace = workspace;
         }
 
-        foreach(HyprctlMonitor monitor in hyprctlMonitors)
+        foreach (Monitor.Hyprctl monitor in hyprctlMonitors)
         {
             if (_workspaces.TryGetValue(monitor.ActiveWorkspace.Name, out Workspace? monitorActiveWorkspace))
                 _monitors[monitor.Id].ActiveWorkspace = monitorActiveWorkspace;
@@ -71,7 +69,7 @@ public class HyprlandState : IHyprlandState
                 _monitors[monitor.Id].SpecialWorkspace = monitorSpecialWorkspace;
         }
 
-        foreach(HyprctlWorkspace workspace in hyprctlWorkspaces)
+        foreach (Workspace.Hyprctl workspace in hyprctlWorkspaces)
         {
             if (_monitors.TryGetValue(workspace.MonitorId, out Monitor? monitor))
                 _workspaces[workspace.Name].Monitor = monitor;
@@ -91,56 +89,4 @@ public class HyprlandState : IHyprlandState
     }
     public Workspace? GetWorkspace(string name) => _workspaces.GetValueOrDefault(name);
     public Monitor? GetMonitor(int id) => _monitors.GetValueOrDefault(id);
-
-    private record HyprctlMonitor(int Id, string Name, string Description, string Make, string Model, string Serial, int Width, int Height, float RefreshRate,
-                                  int X, int Y, HyprctlWorkspaceReference ActiveWorkspace, HyprctlWorkspaceReference SpecialWorkspace,
-                                  float Scale, bool Focused)
-    {
-        public Monitor Map() => new (
-            Id: Id,
-            Name: Name,
-            Description: Description,
-            Make: Make,
-            Model: Model,
-            Serial: Serial,
-            Width: Width,
-            Height: Height,
-            RefreshRate: RefreshRate,
-            X: X,
-            Y: Y,
-            Scale: Scale,
-            Focused: Focused
-        );
-    }
-    private record HyprctlWorkspace(int Id, string Name, string Monitor, int MonitorId, int Windows, bool HasFullScreen, string LastWindow, string LastWindowTitle)
-    {
-        public Workspace Map() => new (
-            Id: Id,
-            Name: Name,
-            WindowsCount: Windows,
-            HasFullScreen: HasFullScreen
-        );
-    }
-    private record HyprctlWorkspaceReference(int Id, string Name);
-    private record HyprctlWindow(string Address, bool Mapped, bool Hidden, int[] At, int[] Size, HyprctlWorkspaceReference Workspace, bool Floating,
-                                 int Monitor, string Class, string Title, string InitialClass, string InitialTitle, int Pid, bool Fullscreen)
-    {
-        public Window Map() => new (
-            Address: Address,
-            Mapped: Mapped,
-            Hidden: Hidden,
-            X: At[0],
-            Y: At[1],
-            Width: Size[0],
-            Height: Size[1],
-            Floating: Floating,
-            Class: Class,
-            Title: Title,
-            InitialClass: InitialClass,
-            InitialTitle: InitialTitle,
-            Pid: Pid,
-            Fullscreen: Fullscreen
-        );
-    }
-
 }
