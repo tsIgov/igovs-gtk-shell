@@ -14,11 +14,28 @@ Gtk.Application.Init ();
 // Gtk.StyleContext.AddProviderForScreen(Gdk.Screen.Default, provider2, 0);
 
 
+Hyprland.Instance.Monitors.OnAdded += (mon) => showAllPerMonitor(Gdk.Display.Default.GetMonitor(mon.Id));
+
+
 for (int i = 0; i < Gdk.Display.Default.NMonitors; i++)
 {
 	Gdk.Monitor monitor = Gdk.Display.Default.GetMonitor(i);
-	Statusbar sb = new(monitor);
-	sb.ShowAll();
+	showAllPerMonitor(monitor);
 }
 
 Gtk.Application.Run();
+
+
+void showAllPerMonitor(Gdk.Monitor monitor)
+{
+	foreach (Gtk.Widget widget in registerPerMonitor(monitor))
+		widget.ShowAll();
+}
+
+
+
+
+IEnumerable<Gtk.Widget> registerPerMonitor(Gdk.Monitor monitor)
+{
+	yield return new Statusbar(monitor);
+}

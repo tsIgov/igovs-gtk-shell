@@ -1,0 +1,6 @@
+- [x] What happens when all monitors get unplugged
+- [ ] Use DI instead of singleton
+- [ ] Config Hyprland
+- [ ] Set imput events and state
+- [ ] Handle other signals (incl. layout)
+- [ ] Implement dispatches

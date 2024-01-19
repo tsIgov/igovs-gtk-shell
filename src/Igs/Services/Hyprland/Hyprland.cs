@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
 
 namespace Igs.Services.Hyprland;
@@ -26,84 +25,9 @@ public class Hyprland : IDisposable
 
     public string Signature { get; private set; }
 
-    public IHyprlandState State { get; private set; }
-
-    #region Window Events
-    /// <summary>
-    /// Emitted on the active window being changed.
-    /// </summary>
-    public event Action<Window>? OnActiveWindowChanged;
-    /// <summary>
-    /// Emitted when a window is opened.
-    /// </summary>
-    public event Action<Window>? OnWindowOpened;
-    /// <summary>
-    /// Emitted when a window is closed.
-    /// </summary>
-    public event Action<Window>? OnWindowClosed;
-    /// <summary>
-    /// Emitted when a window is moved to a workspace.
-    /// </summary>
-    public event Action<Window>? OnWindowMoved;
-    /// <summary>
-    /// Emitted when a window changes its floating mode.
-    /// </summary>
-    public event Action<Window>? OnWindowFloatingModeChanged;
-    /// <summary>
-    /// Emitted when a window requests an urgent state.
-    /// </summary>
-    public event Action<Window>? OnWindowUrgentStateRequested;
-    /// <summary>
-    /// Emitted when a window title changes.
-    /// </summary>
-    public event Action<Window>? OnWindowTitleChanged;
-    /// <summary>
-    /// Emitted when a fullscreen status of a window changes. A fullscreen event is not guaranteed to fire on/off once in succession. A window might do for example 3 requests to be fullscreen’d, which would result in 3 fullscreen events.
-    /// </summary>
-    public event Action<Window>? OnWindowFullscreenStateRequested;
-    #endregion
-
-    #region Monitor Events
-    /// <summary>
-    /// Emitted on the active monitor being changed.
-    /// </summary>
-    public event Action<Monitor>? OnActiveMonitorChanged;
-    /// <summary>
-    /// Emitted when a monitor is added (connected).
-    /// </summary>
-    public event Action<Monitor>? OnMonitorAdded;
-    /// <summary>
-    /// Emitted when a monitor is removed (disconnected).
-    /// </summary>
-    public event Action<Monitor>? OnMonitorRemoved;
-    #endregion
-
-    #region Workspace Events
-    /// <summary>
-    /// Emitted on workspace change. Is emitted ONLY when a user requests a workspace change, and is not emitted on mouse movements.
-    /// </summary>
-    public event Action<Workspace>? OnWorkspaceChanged;
-    /// <summary>
-    /// Emitted when a workspace is created.
-    /// </summary>
-    public event Action<Workspace>? OnWorkspaceCreated;
-    /// <summary>
-    /// Emitted when a workspace is destroyed.
-    /// </summary>
-    public event Action<Workspace>? OnWorkspaceDestroyed;
-    /// <summary>
-    /// Emitted when a workspace is moved to a different monitor.
-    /// </summary>
-    public event Action<Workspace>? OnWorkspaceMoved;
-    /// <summary>
-    /// Emitted when a workspace is renamed.
-    /// </summary>
-    public event Action<Workspace>? OnWorkspaceRenamed;
-    /// <summary>
-    /// Emitted when the special workspace opened in a monitor changes (the argument is null when closing).
-    /// </summary>
-    public event Action<Workspace?>? OnSpecialWorkspaceActivated;
-    #endregion
+    public MonitorCollection Monitors { get; private set; } = null!;
+    public WorkspaceCollection Workspaces { get; private set; } = null!;
+    public WindowCollection Windows { get; private set; } = null!;
 
     #region KeyboardEvents
     public delegate void KeyboardLayoutEventHandler(string KeyboardName, string LayoutName);
@@ -124,14 +48,13 @@ public class Hyprland : IDisposable
         _socket = new(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
         _socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
         Signature = getSignature();
-
-        // It will be initialized right after the constructor but it requres an existing instance of this class to exist already.
-        State = null!;
     }
-
     private void initialize()
     {
-        State = new HyprlandState();
+        Monitors = new MonitorCollection();
+        Workspaces = new WorkspaceCollection();
+        Windows = new WindowCollection();
+
         startListeningForSignals();
     }
 
@@ -184,7 +107,7 @@ public class Hyprland : IDisposable
                 }
                 catch(Exception ex)
                 {
-                    Console.WriteLine($"Failed handling Hyprland signal.\nMessage: {message}\nException: {ex}");
+                    Console.Error.WriteLine($"Failed handling Hyprland signal.\nMessage: {message}\nException: {ex}");
                 }
             }
         }, _cancellationTokenSource.Token);
@@ -194,27 +117,51 @@ public class Hyprland : IDisposable
     {
         if (tryParseSignal(signal, out string eventName, out string[] parameters))
         {
-            switch(eventName)
+            switch (eventName)
             {
-                case "activewindowv2": OnActiveWindowChanged?.Invoke(State.Refresh().GetWindow(parameters[0])!); break;
-                case "openwindow": OnWindowOpened?.Invoke(State.Refresh().GetWindow(parameters[0])!); break;
-                case "closewindow": OnWindowClosed?.Invoke(State.Refresh().GetWindow(parameters[0])!); break;
-                case "movewindow": OnWindowMoved?.Invoke(State.Refresh().GetWindow(parameters[0])!); break;
-                case "changefloatingmode": OnWindowFloatingModeChanged?.Invoke(State.Refresh().GetWindow(parameters[0])!); break;
-                case "windowtitle": OnWindowTitleChanged?.Invoke(State.Refresh().GetWindow(parameters[0])!); break;
-                case "urgent": OnWindowUrgentStateRequested?.Invoke(State.Refresh().GetWindow(parameters[0])!); break;
-                case "fullscreen": OnWindowFullscreenStateRequested?.Invoke(State.Refresh().GetWindow(parameters[0])!); break;
+                case "activewindowv2":
+                case "openwindow":
+                case "closewindow":
+                case "movewindow":
+                case "changefloatingmode":
+                case "windowtitle":
+                case "urgent":
+                case "fullscreen":
+                    {
+                        Monitors.Refresh();
+                        Workspaces.Refresh();
+                        Windows.Refresh();
 
-                case "monitoradded": OnMonitorAdded?.Invoke(State.Refresh().Monitors.FirstOrDefault(m => m.Name == parameters[0])!); break;
-                case "monitorremoved": OnMonitorRemoved?.Invoke(State.Refresh().Monitors.FirstOrDefault(m => m.Name == parameters[0])!); break;
-                case "focusedmon": OnActiveMonitorChanged?.Invoke(State.Refresh().Monitors.FirstOrDefault(m => m.Name == parameters[0])!); break;
+                        Windows.HandleEvents(eventName, Windows.GetByAddress(parameters[0])!);
+                        break;
+                    }
 
-                case "createworkspace": OnWorkspaceCreated?.Invoke(State.Refresh().GetWorkspace(parameters[0])!); break;
-                case "destroyworkspace": OnWorkspaceDestroyed?.Invoke(State.Refresh().GetWorkspace(parameters[0])!); break;
-                case "workspace": OnWorkspaceChanged?.Invoke(State.Refresh().GetWorkspace(parameters[0])!); break;
-                case "moveworkspace": OnWorkspaceMoved?.Invoke(State.Refresh().GetWorkspace(parameters[0])!); break;
-                case "renameworkspace": OnWorkspaceRenamed?.Invoke(State.Refresh().Workspaces.FirstOrDefault(ws => ws.Id.ToString() == parameters[0])!); break;
-                case "activespecial": OnSpecialWorkspaceActivated?.Invoke(State.Refresh().GetWorkspace(parameters[0])!); break;
+                case "monitoradded":
+                case "monitorremoved":
+                case "focusedmon":
+                    {
+                        Monitors.Refresh();
+                        Workspaces.Refresh();
+                        Windows.Refresh();
+
+                        Monitors.HandleEvents(eventName, Monitors.GetByName(parameters[0])!);
+                        break;
+                    }
+
+                case "createworkspace":
+                case "destroyworkspace":
+                case "workspace":
+                case "moveworkspace":
+                case "renameworkspace":
+                case "activespecial":
+                    {
+                        Monitors.Refresh();
+                        Workspaces.Refresh();
+                        Windows.Refresh();
+
+                        Workspaces.HandleEvents(eventName, Workspaces.GetByName(parameters[0])!);
+                        break;
+                    }
 
                 case "activelayout": OnKeyboardLayoutChanged?.Invoke(parameters[0], parameters[1]); break;
                 case "submap": OnKeybindSubmapChanged?.Invoke(parameters[0]); break;
