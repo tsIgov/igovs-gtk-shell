@@ -40,7 +40,11 @@ public class WindowCollection : IEnumerable<Window>
 	/// <summary>
 	/// Emitted when a fullscreen status of a window changes. A fullscreen event is not guaranteed to fire on/off once in succession. A window might do for example 3 requests to be fullscreen’d, which would result in 3 fullscreen events.
 	/// </summary>
-	public event Action<Window>? OnFullscreenStateRequested;
+	public event Action<Window>? OnFullscreenStateChangeRequested;
+	/// <summary>
+	/// Emitted when a window requests a change to its minimized state.
+	/// </summary>
+	public event Action<Window>? OnMinimizedStateChangeRequested;
 	#endregion
 
 	internal WindowCollection() => Refresh();
@@ -87,7 +91,8 @@ public class WindowCollection : IEnumerable<Window>
 			case "changefloatingmode": OnFloatingModeChanged?.Invoke(arg); break;
 			case "windowtitle": OnTitleChanged?.Invoke(arg); break;
 			case "urgent": OnUrgentStateRequested?.Invoke(arg); break;
-			case "fullscreen": OnFullscreenStateRequested?.Invoke(arg); break;
+			case "fullscreen": OnFullscreenStateChangeRequested?.Invoke(arg); break;
+			case "minimize": OnMinimizedStateChangeRequested?.Invoke(arg); break;
 		}
 	}
 

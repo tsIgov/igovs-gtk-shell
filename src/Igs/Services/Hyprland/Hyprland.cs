@@ -23,15 +23,15 @@ public class Hyprland : IDisposable
     private Socket _socket;
     private CancellationTokenSource _cancellationTokenSource = new ();
 
-    public string Signature { get; private set; }
+    public string Signature { get; }
 
     public MonitorCollection Monitors { get; private set; } = null!;
     public WorkspaceCollection Workspaces { get; private set; } = null!;
     public WindowCollection Windows { get; private set; } = null!;
 
     #region KeyboardEvents
-    public delegate void KeyboardLayoutEventHandler(string KeyboardName, string LayoutName);
-    public delegate void KeybindSubmapEventHandler(string SubmapName);
+    public delegate void KeyboardLayoutEventHandler(string keyboardName, string layoutName);
+    public delegate void KeybindSubmapEventHandler(string submapName);
 
     /// <summary>
     /// Emitted on a layout change of the active keyboard.
@@ -42,6 +42,11 @@ public class Hyprland : IDisposable
     /// </summary>
     public event KeybindSubmapEventHandler? OnKeybindSubmapChanged;
     #endregion
+
+    /// <summary>
+    /// Emitted when the config is done reloading
+    /// </summary>
+    public event Action? OnConfigReloaded;
 
     private Hyprland()
     {
@@ -112,13 +117,14 @@ public class Hyprland : IDisposable
             }
         }, _cancellationTokenSource.Token);
     }
-
     private void handleSignal(string signal)
     {
         if (tryParseSignal(signal, out string eventName, out string[] parameters))
         {
             switch (eventName)
             {
+                case "activewindow":
+                    break;
                 case "activewindowv2":
                 case "openwindow":
                 case "closewindow":
@@ -127,6 +133,7 @@ public class Hyprland : IDisposable
                 case "windowtitle":
                 case "urgent":
                 case "fullscreen":
+                case "minimize":
                     {
                         Monitors.Refresh();
                         Workspaces.Refresh();
@@ -166,11 +173,12 @@ public class Hyprland : IDisposable
                 case "activelayout": OnKeyboardLayoutChanged?.Invoke(parameters[0], parameters[1]); break;
                 case "submap": OnKeybindSubmapChanged?.Invoke(parameters[0]); break;
 
+                case "configreloaded": OnConfigReloaded?.Invoke(); break;
+
                 default: HandleCustomSignal(eventName, parameters); break;
             }
         }
     }
-
     private bool tryParseSignal(string signal, out string eventName, out string[] parameters)
     {
         signal = signal.Trim();
