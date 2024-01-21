@@ -1,7 +1,6 @@
 namespace Igs.Widgets;
 
 using Gtk;
-using Igs.Services.Hyprland;
 
 public class Workspaces : Box
 {
@@ -25,8 +24,5 @@ public class WorkspaceButton : Button
 	protected override void OnClicked()
 	{
 		base.OnClicked();
-		//Hyprland.Instance.State.Workspaces.FirstOrDefault(x => x.Id == _workspaceId)?.Activate();
-
-		//Hyprland.Instance.ChangeWorkspace(_workspaceId);
 	}
 }

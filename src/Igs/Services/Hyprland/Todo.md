@@ -4,3 +4,4 @@
 - [x] Set imput events and state
 - [x] Handle other signals (incl. layout)
 - [ ] Implement dispatches
+- [ ] Set animations

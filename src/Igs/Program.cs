@@ -1,5 +1,7 @@
 ﻿
-using Igs.Services.Hyprland;
+using Igs.Hyprland;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 Gtk.Application.Init ();
 
@@ -13,9 +15,17 @@ Gtk.Application.Init ();
 // Gtk.StyleContext.AddProviderForScreen(Gdk.Screen.Default, provider, 0);
 // Gtk.StyleContext.AddProviderForScreen(Gdk.Screen.Default, provider2, 0);
 
+ServiceCollection services = new();
+services
+	.AddHyprland()
+	.AddLogging(logging => logging.AddConsole());
 
-Hyprland.Instance.Monitors.OnAdded += (mon) => showAllPerMonitor(Gdk.Display.Default.GetMonitor(mon.Id));
+ServiceProvider serviceProvider = services.BuildServiceProvider();
 
+using IServiceScope scope = serviceProvider.CreateScope();
+
+IHyprland hyprland = scope.ServiceProvider.GetRequiredService<IHyprland>();
+hyprland.Initialize();
 
 for (int i = 0; i < Gdk.Display.Default.NMonitors; i++)
 {

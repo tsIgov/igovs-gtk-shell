@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Igs", "Igs\Igs.csproj", "{BABAC18E-67A7-489D-8E57-EF75732227C2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Igs.Hyprland", "Igs.Hyprland\Igs.Hyprland.csproj", "{70C0909D-4A9D-4224-8E27-67AE25BFA7C5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{BABAC18E-67A7-489D-8E57-EF75732227C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BABAC18E-67A7-489D-8E57-EF75732227C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BABAC18E-67A7-489D-8E57-EF75732227C2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{70C0909D-4A9D-4224-8E27-67AE25BFA7C5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{70C0909D-4A9D-4224-8E27-67AE25BFA7C5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{70C0909D-4A9D-4224-8E27-67AE25BFA7C5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{70C0909D-4A9D-4224-8E27-67AE25BFA7C5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
