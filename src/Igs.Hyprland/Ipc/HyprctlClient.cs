@@ -6,7 +6,7 @@ namespace Igs.Hyprland.Ipc;
 
 public interface IHyprctlClient
 {
-	T Query<T>(string query);
+	T? Query<T>(string query);
 	bool Dispatch(string command);
 }
 
@@ -21,11 +21,14 @@ public class HyprctlClient : IHyprctlClient
 		_logger = loggerFactory?.CreateLogger<HyprctlClient>();
 	}
 
-	public T Query<T>(string query)
+	public T? Query<T>(string query)
 	{
 		string rawResponse = sendMessage(query);
 
-		T response = JsonSerializer.Deserialize<T>(rawResponse, new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
+		if (string.IsNullOrWhiteSpace(rawResponse))
+			return default;
+
+		T? response = JsonSerializer.Deserialize<T>(rawResponse, new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
 		return response;
 	}
 

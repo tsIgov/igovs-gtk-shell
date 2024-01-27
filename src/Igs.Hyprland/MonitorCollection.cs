@@ -9,10 +9,7 @@ public class MonitorCollection : IEnumerable<Monitor>
 	private readonly ISignalReciever _signalReciever;
 	private readonly IStateProvider _stateProvider;
 
-	private Monitor[] _monitors = Array.Empty<Monitor>();
-	private Dictionary<int, Monitor> _byId = null!;
-	private Dictionary<string, Monitor> _byName = null!;
-	private bool _isDirty = true;
+	public MonitorFocus Focus { get; }
 
 	#region Events
 	/// <summary>
@@ -35,57 +32,33 @@ public class MonitorCollection : IEnumerable<Monitor>
 		_signalReciever = signalReciever;
 		_signalReciever.OnSignalRecieved += handleEvents;
 		_stateProvider = stateProvider;
+
+		Focus = new MonitorFocus(hyprctlClient, stateProvider);
 	}
 
-	public Monitor? GetById(int id)
+	public IEnumerator<Monitor> GetEnumerator()
 	{
-		if (_isDirty)
-			refresh();
-
-		_byId.TryGetValue(id, out Monitor? value);
-		return value;
+		Monitor.Hyprctl[]? monitors = _hyprctlClient.Query<Monitor.Hyprctl[]>("monitors");
+		Monitor[] result = monitors == null ? Array.Empty<Monitor>() : monitors.Select(m => new Monitor(m, _stateProvider)).ToArray();
+		return (result as IEnumerable<Monitor>).GetEnumerator();
 	}
-	public Monitor? GetByName(string name)
-	{
-		if (_isDirty)
-			refresh();
-
-		_byName.TryGetValue(name, out Monitor? value);
-		return value;
-	}
-	public IEnumerator<Monitor> GetEnumerator() => refresh().GetEnumerator();
 	IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-	private IEnumerable<Monitor> refresh()
-	{
-		if (_isDirty)
-		{
-			Monitor.Hyprctl[] monitors = _hyprctlClient.Query<Monitor.Hyprctl[]>("monitors");
-			_monitors = monitors.Select(m => new Monitor(m, _stateProvider)).ToArray();
-			_byId = new Dictionary<int, Monitor>(_monitors.Select(x => new KeyValuePair<int, Monitor>(x.Id, x)));
-			_byName = new Dictionary<string, Monitor>(_monitors.Select(x => new KeyValuePair<string, Monitor>(x.Name, x)));
-			_isDirty = false;
-		}
 
-		return _monitors;
-	}
-
-	private readonly HashSet<string> _eventsToHandle = new() { "monitoradded", "monitorremoved", "focusedmon" };
 	private void handleEvents(string eventName, string[] args)
 	{
-		if (!_eventsToHandle.Contains(eventName))
-			return;
-
-		_isDirty = true;
-
-		Monitor? monitor = GetByName(args[0]);
-		if (monitor == null)
-			return;
-
-		switch (eventName)
+		Action<Monitor>? @delegate = eventName switch
 		{
-			case "monitoradded": OnAdded?.Invoke(monitor); break;
-			case "monitorremoved": OnRemoved?.Invoke(monitor); break;
-			case "focusedmon": OnActiveChanged?.Invoke(monitor); break;
+			"monitoradded" => OnAdded,
+			"monitorremoved" => OnRemoved,
+			"focusedmon" => OnActiveChanged,
+			_ => default
+		};
+
+		if (@delegate != null)
+		{
+			Monitor? monitor = this.FirstOrDefault(x => x.Name == args[0]);
+			if (monitor != null)
+				@delegate.Invoke(monitor);
 		}
 	}
 

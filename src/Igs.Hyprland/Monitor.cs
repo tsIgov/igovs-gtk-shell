@@ -25,8 +25,8 @@ public class Monitor
 	public int ReservedSpaceRight { get; }
 	public int ReservedSpaceBottom { get; }
 
-	public Workspace? ActiveWorkspace => _activeWorkspceId.HasValue ? _stateProvider.Workspaces.GetById(_activeWorkspceId.Value) : null;
-	public Workspace? SpecialWorkspace => _specialWorkspaceId.HasValue ? _stateProvider.Workspaces.GetById(_specialWorkspaceId.Value) : null;
+	public Workspace? ActiveWorkspace => _activeWorkspceId.HasValue ? _stateProvider.Workspaces.SingleOrDefault(x => x.Id == _activeWorkspceId.Value) : null;
+	public Workspace? SpecialWorkspace => _specialWorkspaceId.HasValue ? _stateProvider.Workspaces.SingleOrDefault(x => x.Id == _specialWorkspaceId.Value) : null;
 
 	internal Monitor(Hyprctl monitor, IStateProvider stateProvider)
 	{

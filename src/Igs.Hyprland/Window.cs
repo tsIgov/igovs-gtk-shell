@@ -27,10 +27,10 @@ public class Window
 	public bool Pinned { get; }
 	public int FocusHistoryId { get; }
 
-	public Monitor? Monitor => _monitorId.HasValue ? _stateProvider.Monitors.GetById(_monitorId.Value) : null;
-	public Workspace? Workspace => _workspaceId.HasValue ? _stateProvider.Workspaces.GetById(_workspaceId.Value) : null;
-	public IEnumerable<Window> Group => _windowGroupAddresses.Select(x => _stateProvider.Windows.GetByAddress(x)).Where(x => x != null)!;
-	public Window? Swallowing => _stateProvider.Windows.GetByAddress(_swallowingAddress);
+	public Monitor? Monitor => _monitorId.HasValue ? _stateProvider.Monitors.SingleOrDefault(x => x.Id == _monitorId.Value) : null;
+	public Workspace? Workspace => _workspaceId.HasValue ? _stateProvider.Workspaces.SingleOrDefault(x => x.Id == _workspaceId.Value) : null;
+	public IEnumerable<Window> Group => _stateProvider.Windows.Where(x => _windowGroupAddresses.Contains(x.Address));
+	public Window? Swallowing => _stateProvider.Windows.FirstOrDefault(x => x.Address == _swallowingAddress);
 
 	internal Window(Hyprctl window, IStateProvider stateProvider)
 	{

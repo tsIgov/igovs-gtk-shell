@@ -9,10 +9,7 @@ public class WorkspaceCollection : IEnumerable<Workspace>
 	private readonly ISignalReciever _signalReciever;
 	private readonly IStateProvider _stateProvider;
 
-	private Workspace[] _workspaces = null!;
-	private Dictionary<int, Workspace> _byId = null!;
-	private Dictionary<string, Workspace> _byName = null!;
-	private bool _isDirty = true;
+	public WorkspaceFocus Focus { get; }
 
 	#region Events
 	/// <summary>
@@ -36,9 +33,14 @@ public class WorkspaceCollection : IEnumerable<Workspace>
 	/// </summary>
 	public event Action<Workspace>? OnRenamed;
 	/// <summary>
-	/// Emitted when the special workspace opened in a monitor changes (the argument is null when closing).
+	/// Emitted when the special workspace opened in a monitor changes.
 	/// </summary>
-	public event Action<Workspace?>? OnSpecialWorkspaceActivated;
+	public event Action<Workspace>? OnSpecialWorkspaceOpened;
+	/// <summary>
+	/// Emitted when the special workspace opened in a monitor closes.
+	/// </summary>
+	public event Action? OnSpecialWorkspaceClosed;
+
 	#endregion
 
 	internal WorkspaceCollection(IHyprctlClient hyprctlClient, ISignalReciever signalReciever, IStateProvider stateProvider)
@@ -47,60 +49,41 @@ public class WorkspaceCollection : IEnumerable<Workspace>
 		_signalReciever = signalReciever;
 		_signalReciever.OnSignalRecieved += handleEvents;
 		_stateProvider = stateProvider;
+
+		Focus = new WorkspaceFocus(hyprctlClient, stateProvider);
 	}
 
-	public Workspace? GetById(int id)
+	public IEnumerator<Workspace> GetEnumerator()
 	{
-		if (_isDirty)
-			refresh();
-
-		_byId.TryGetValue(id, out Workspace? value);
-		return value;
+		Workspace.Hyprctl[]? workspaces = _hyprctlClient.Query<Workspace.Hyprctl[]>("workspaces");
+		Workspace[] result = workspaces == null ? Array.Empty<Workspace>() : workspaces.Select(ws => new Workspace(ws, _stateProvider)).ToArray();
+		return (result as IEnumerable<Workspace>).GetEnumerator();
 	}
-	public Workspace? GetByName(string name)
-	{
-		if (_isDirty)
-			refresh();
-
-		_byName.TryGetValue(name, out Workspace? value);
-		return value;
-	}
-	public IEnumerator<Workspace> GetEnumerator() => refresh().GetEnumerator();
 	IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-	private IEnumerable<Workspace> refresh()
-	{
-		if (_isDirty)
-		{
-			Workspace.Hyprctl[] workspaces = _hyprctlClient.Query<Workspace.Hyprctl[]>("workspaces");
-			_workspaces = workspaces.Select(ws => new Workspace(ws, _stateProvider)).ToArray();
-			_byId = new Dictionary<int, Workspace>(_workspaces.Select(x => new KeyValuePair<int, Workspace>(x.Id, x)));
-			_byName = new Dictionary<string, Workspace>(_workspaces.Select(x => new KeyValuePair<string, Workspace>(x.Name, x)));
-			_isDirty = false;
-		}
 
-		return _workspaces;
-	}
 
-	private readonly HashSet<string> _eventsToHandle = new() { "workspace", "createworkspace", "destroyworkspace", "moveworkspace", "renameworkspace", "activespecial" };
 	private void handleEvents(string eventName, string[] args)
 	{
-		if (!_eventsToHandle.Contains(eventName))
-			return;
 
-		_isDirty = true;
-
-		Workspace? workspace = GetByName(args[0]);
-		if (workspace == null)
-			return;
-
-		switch (eventName)
+		Action<Workspace>? @delegate = eventName switch
 		{
-			case "workspace": OnActiveChanged?.Invoke(workspace); break;
-			case "createworkspace": OnCreated?.Invoke(workspace); break;
-			case "destroyworkspace": OnDestroyed?.Invoke(workspace); break;
-			case "moveworkspace": OnMoved?.Invoke(workspace); break;
-			case "renameworkspace": OnRenamed?.Invoke(workspace); break;
-			case "activespecial": OnSpecialWorkspaceActivated?.Invoke(workspace); break;
+			"workspace" => OnActiveChanged,
+			"createworkspace" => OnCreated,
+			"destroyworkspace" => OnDestroyed,
+			"moveworkspace" => OnMoved,
+			"renameworkspace" => OnRenamed,
+			"activespecial" => OnSpecialWorkspaceOpened,
+			_ => default
+		};
+
+		if (@delegate != null)
+		{
+			Workspace? workspace = this.FirstOrDefault(x => x.Name == args[0]);
+			if (workspace != null)
+				@delegate.Invoke(workspace);
 		}
+
+		if (eventName == "activespecial" && string.IsNullOrEmpty(args[0]))
+			OnSpecialWorkspaceClosed?.Invoke();
 	}
 }

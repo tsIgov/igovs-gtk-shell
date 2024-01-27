@@ -9,9 +9,7 @@ public class WindowCollection : IEnumerable<Window>
 	private readonly ISignalReciever _signalReciever;
 	private readonly IStateProvider _stateProvider;
 
-	private Window[] _windows = null!;
-	private Dictionary<string, Window> _byAddress = null!;
-	private bool _isDirty = true;
+	public WindowFocus Focus { get; }
 
 	#region Events
 	/// <summary>
@@ -43,7 +41,7 @@ public class WindowCollection : IEnumerable<Window>
 	/// </summary>
 	public event Action<Window>? OnTitleChanged;
 	/// <summary>
-	/// Emitted when a fullscreen status of a window changes. A fullscreen event is not guaranteed to fire on/off once in succession. A window might do for example 3 requests to be fullscreen’d, which would result in 3 fullscreen events.
+	/// Emitted when a fullscreen status of a window changes. A fullscreen event is not guaranteed to fire on/off once in succession. A window might do for example 3 requests to be fullscreened, which would result in 3 fullscreen events.
 	/// </summary>
 	public event Action<Window>? OnFullscreenStateChangeRequested;
 	/// <summary>
@@ -58,54 +56,38 @@ public class WindowCollection : IEnumerable<Window>
 		_signalReciever = signalReciever;
 		_signalReciever.OnSignalRecieved += handleEvents;
 		_stateProvider = stateProvider;
+
+		Focus = new WindowFocus(hyprctlClient, stateProvider);
 	}
 
-	public Window? GetByAddress(string name)
+	public IEnumerator<Window> GetEnumerator()
 	{
-		if (_isDirty)
-			refresh();
-
-		_byAddress.TryGetValue(name, out Window? value);
-		return value;
+		Window.Hyprctl[]? windows = _hyprctlClient.Query<Window.Hyprctl[]>("clients");
+		Window[] result = windows == null ? Array.Empty<Window>() : windows.Select(w => new Window(w, _stateProvider)).ToArray();
+		return (result as IEnumerable<Window>).GetEnumerator();
 	}
-	public IEnumerator<Window> GetEnumerator() => refresh().GetEnumerator();
 	IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-	private IEnumerable<Window> refresh()
-	{
-		if (_isDirty)
-		{
-			Window.Hyprctl[] windows = _hyprctlClient.Query<Window.Hyprctl[]>("clients");
-			_windows = windows.Select(w => new Window(w, _stateProvider)).ToArray();
-			_byAddress = new Dictionary<string, Window>(_windows.Select(x => new KeyValuePair<string, Window>(x.Address, x)));
-			_isDirty = false;
-		}
-
-		return _windows;
-	}
-
-	private readonly HashSet<string> _eventsToHandle = new() { "activewindowv2", "openwindow", "closewindow", "movewindow", "changefloatingmode", "windowtitle", "urgent", "fullscreen", "minimize" };
 	private void handleEvents(string eventName, string[] args)
 	{
-		if (!_eventsToHandle.Contains(eventName))
-			return;
-
-		_isDirty = true;
-
-		Window? window = GetByAddress(args[0]);
-		if (window == null)
-			return;
-
-		switch (eventName)
+		Action<Window>? @delegate = eventName switch
 		{
-			case "activewindowv2": OnActiveWindowChanged?.Invoke(window); break;
-			case "openwindow": OnOpened?.Invoke(window); break;
-			case "closewindow": OnClosed?.Invoke(window); break;
-			case "movewindow": OnMovedToWorkspace?.Invoke(window); break;
-			case "changefloatingmode": OnFloatingModeChanged?.Invoke(window); break;
-			case "windowtitle": OnTitleChanged?.Invoke(window); break;
-			case "urgent": OnUrgentStateRequested?.Invoke(window); break;
-			case "fullscreen": OnFullscreenStateChangeRequested?.Invoke(window); break;
-			case "minimize": OnMinimizedStateChangeRequested?.Invoke(window); break;
+			"activewindowv2" => OnActiveWindowChanged,
+			"openwindow" => OnOpened,
+			"closewindow" => OnClosed,
+			"movewindow" => OnMovedToWorkspace,
+			"changefloatingmode" => OnFloatingModeChanged,
+			"windowtitle" => OnTitleChanged,
+			"urgent" => OnUrgentStateRequested,
+			"fullscreen" => OnFullscreenStateChangeRequested,
+			"minimize" => OnMinimizedStateChangeRequested,
+			_ => default
+		};
+
+		if (@delegate != null)
+		{
+			Window? window = this.SingleOrDefault(x => x.Address == args[0]);
+			if (window != null)
+				@delegate.Invoke(window);
 		}
 	}
 }
