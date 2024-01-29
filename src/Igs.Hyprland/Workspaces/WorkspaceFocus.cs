@@ -1,12 +1,12 @@
 
 using Igs.Hyprland.Ipc;
 
-namespace Igs.Hyprland;
+namespace Igs.Hyprland.Workspaces;
 
 public class WorkspaceFocus
 {
 	private readonly IHyprctlClient _hyprctlClient;
-	private readonly IStateProvider _stateProvider;
+	private readonly IHyprland _hyprland;
 
 	public Workspace? Workspace
 	{
@@ -17,14 +17,14 @@ public class WorkspaceFocus
 			if (workspace == null)
 				return null;
 
-			Workspace result = new Workspace(workspace, _stateProvider);
+			Workspace result = new Workspace(workspace, _hyprland);
 			return result;
 		}
 	}
 
-	internal WorkspaceFocus(IHyprctlClient hyprctlClient, IStateProvider stateProvider)
+	internal WorkspaceFocus(IHyprctlClient hyprctlClient, IHyprland hyprland)
 	{
 		_hyprctlClient = hyprctlClient;
-		_stateProvider = stateProvider;
+		_hyprland = hyprland;
 	}
 }

@@ -5,25 +5,25 @@ namespace Igs.Hyprland.Ipc;
 
 public delegate void SignalEventHandler(string eventName, string[] arguments);
 
-public interface ISignalReciever : IDisposable
+public interface ISignalReceiver : IDisposable
 {
-	event SignalEventHandler? OnSignalRecieved;
+	event SignalEventHandler? OnSignalReceived;
 
 	void StartListening();
 }
 
-public class SignalReciever : ISignalReciever
+public class SignalReceiver : ISignalReceiver
 {
 	private readonly Socket _socket;
 	private readonly UnixDomainSocketEndPoint _endpoint;
 	private readonly CancellationTokenSource _cancellationTokenSource;
-	private readonly ILogger<SignalReciever>? _logger;
+	private readonly ILogger<SignalReceiver>? _logger;
 
-	public event SignalEventHandler? OnSignalRecieved;
+	public event SignalEventHandler? OnSignalReceived;
 
-	public SignalReciever(ISignatureProvider signatureProvider, ILoggerFactory? loggerFactory = null)
+	public SignalReceiver(ISignatureProvider signatureProvider, ILoggerFactory? loggerFactory = null)
 	{
-		_logger = loggerFactory?.CreateLogger<SignalReciever>();
+		_logger = loggerFactory?.CreateLogger<SignalReceiver>();
 		_socket = new(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
 		_socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
 		string socketPath = $"/tmp/hypr/{signatureProvider.GetSignature()}/.socket2.sock";
@@ -70,7 +70,7 @@ public class SignalReciever : ISignalReciever
 		string eventName = signal[..index];
 		string[] parameters = signal[(index + ">>".Length)..].Split(',');
 
-		OnSignalRecieved?.Invoke(eventName, parameters);
+		OnSignalReceived?.Invoke(eventName, parameters);
 	}
 
 	public void Dispose()

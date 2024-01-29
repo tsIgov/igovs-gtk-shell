@@ -1,8 +1,11 @@
-namespace Igs.Hyprland;
+using Igs.Hyprland.Windows;
+using Monitor = Igs.Hyprland.Monitors.Monitor;
+
+namespace Igs.Hyprland.Workspaces;
 
 public class Workspace
 {
-	private readonly IStateProvider _stateProvider;
+	private readonly IHyprland _hyprland;
 	private string? _lastWindowAddress;
 	private int? _monitorId { get; }
 
@@ -11,12 +14,12 @@ public class Workspace
 	public int WindowsCount { get; }
 	public bool HasFullScreen { get; }
 
-	public Window? LastWindow => _lastWindowAddress != null ? _stateProvider.Windows.FirstOrDefault(x => x.Address == _lastWindowAddress) : null;
-	public Monitor? Monitor => _monitorId.HasValue ? _stateProvider.Monitors.SingleOrDefault(x => x.Id == _monitorId.Value) : null;
+	public Window? LastWindow => _lastWindowAddress != null ? _hyprland.Windows.FirstOrDefault(x => x.Address == _lastWindowAddress) : null;
+	public Monitor? Monitor => _monitorId.HasValue ? _hyprland.Monitors.SingleOrDefault(x => x.Id == _monitorId.Value) : null;
 
-	internal Workspace(Hyprctl workspace, IStateProvider stateProvider)
+	internal Workspace(Hyprctl workspace, IHyprland hyprland)
 	{
-		_stateProvider = stateProvider;
+		_hyprland = hyprland;
 
 		Id = workspace.Id;
 		Name = workspace.Name;

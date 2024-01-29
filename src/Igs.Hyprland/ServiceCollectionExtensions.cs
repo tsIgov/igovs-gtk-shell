@@ -9,7 +9,7 @@ public static class ServiceCollectionExtensions
 	{
 		services.AddSingleton<ISignatureProvider, SignatureProvider>();
 		services.AddSingleton<IHyprctlClient, HyprctlClient>();
-		services.AddSingleton<ISignalReciever, SignalReciever>();
+		services.AddSingleton<ISignalReceiver, SignalReceiver>();
 		services.AddSingleton<IHyprland, Hyprland>();
 		return services;
 	}

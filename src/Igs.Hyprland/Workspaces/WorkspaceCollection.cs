@@ -1,13 +1,13 @@
 using System.Collections;
 using Igs.Hyprland.Ipc;
 
-namespace Igs.Hyprland;
+namespace Igs.Hyprland.Workspaces;
 
 public class WorkspaceCollection : IEnumerable<Workspace>
 {
 	private readonly IHyprctlClient _hyprctlClient;
-	private readonly ISignalReciever _signalReciever;
-	private readonly IStateProvider _stateProvider;
+	private readonly ISignalReceiver _signalReceiver;
+	private readonly IHyprland _hyprland;
 
 	public WorkspaceFocus Focus { get; }
 
@@ -43,20 +43,20 @@ public class WorkspaceCollection : IEnumerable<Workspace>
 
 	#endregion
 
-	internal WorkspaceCollection(IHyprctlClient hyprctlClient, ISignalReciever signalReciever, IStateProvider stateProvider)
+	internal WorkspaceCollection(IHyprctlClient hyprctlClient, ISignalReceiver signalReceiver, IHyprland hyprland)
 	{
 		_hyprctlClient = hyprctlClient;
-		_signalReciever = signalReciever;
-		_signalReciever.OnSignalRecieved += handleEvents;
-		_stateProvider = stateProvider;
+		_signalReceiver = signalReceiver;
+		_signalReceiver.OnSignalReceived += handleEvents;
+		_hyprland = hyprland;
 
-		Focus = new WorkspaceFocus(hyprctlClient, stateProvider);
+		Focus = new WorkspaceFocus(hyprctlClient, hyprland);
 	}
 
 	public IEnumerator<Workspace> GetEnumerator()
 	{
 		Workspace.Hyprctl[]? workspaces = _hyprctlClient.Query<Workspace.Hyprctl[]>("workspaces");
-		Workspace[] result = workspaces == null ? Array.Empty<Workspace>() : workspaces.Select(ws => new Workspace(ws, _stateProvider)).ToArray();
+		Workspace[] result = workspaces == null ? Array.Empty<Workspace>() : workspaces.Select(ws => new Workspace(ws, _hyprland)).ToArray();
 		return (result as IEnumerable<Workspace>).GetEnumerator();
 	}
 	IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

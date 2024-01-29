@@ -1,8 +1,10 @@
-namespace Igs.Hyprland;
+using Igs.Hyprland.Workspaces;
+
+namespace Igs.Hyprland.Monitors;
 
 public class Monitor
 {
-	private readonly IStateProvider _stateProvider;
+	private readonly IHyprland _hyprland;
 	private readonly int? _activeWorkspceId;
 	private readonly int? _specialWorkspaceId;
 
@@ -25,12 +27,12 @@ public class Monitor
 	public int ReservedSpaceRight { get; }
 	public int ReservedSpaceBottom { get; }
 
-	public Workspace? ActiveWorkspace => _activeWorkspceId.HasValue ? _stateProvider.Workspaces.SingleOrDefault(x => x.Id == _activeWorkspceId.Value) : null;
-	public Workspace? SpecialWorkspace => _specialWorkspaceId.HasValue ? _stateProvider.Workspaces.SingleOrDefault(x => x.Id == _specialWorkspaceId.Value) : null;
+	public Workspace? ActiveWorkspace => _activeWorkspceId.HasValue ? _hyprland.Workspaces.SingleOrDefault(x => x.Id == _activeWorkspceId.Value) : null;
+	public Workspace? SpecialWorkspace => _specialWorkspaceId.HasValue ? _hyprland.Workspaces.SingleOrDefault(x => x.Id == _specialWorkspaceId.Value) : null;
 
-	internal Monitor(Hyprctl monitor, IStateProvider stateProvider)
+	internal Monitor(Hyprctl monitor, IHyprland hyprland)
 	{
-		_stateProvider = stateProvider;
+		_hyprland = hyprland;
 
 		Id = monitor.Id;
 		Name = monitor.Name;

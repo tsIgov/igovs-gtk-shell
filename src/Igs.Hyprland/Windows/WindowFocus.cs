@@ -1,12 +1,12 @@
 
 using Igs.Hyprland.Ipc;
 
-namespace Igs.Hyprland;
+namespace Igs.Hyprland.Windows;
 
 public class WindowFocus
 {
 	private readonly IHyprctlClient _hyprctlClient;
-	private readonly IStateProvider _stateProvider;
+	private readonly IHyprland _hyprland;
 
 	public Window? Window
 	{
@@ -16,14 +16,14 @@ public class WindowFocus
 			if (window == null)
 				return null;
 
-			Window result = new Window(window, _stateProvider);
+			Window result = new Window(window, _hyprland);
 			return result;
 		}
 	}
 
-	internal WindowFocus(IHyprctlClient hyprctlClient, IStateProvider stateProvider)
+	internal WindowFocus(IHyprctlClient hyprctlClient, IHyprland hyprland)
 	{
 		_hyprctlClient = hyprctlClient;
-		_stateProvider = stateProvider;
+		_hyprland = hyprland;
 	}
 }

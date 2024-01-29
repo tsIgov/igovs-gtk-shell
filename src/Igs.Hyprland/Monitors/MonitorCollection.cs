@@ -1,13 +1,13 @@
 using System.Collections;
 using Igs.Hyprland.Ipc;
 
-namespace Igs.Hyprland;
+namespace Igs.Hyprland.Monitors;
 
 public class MonitorCollection : IEnumerable<Monitor>
 {
 	private readonly IHyprctlClient _hyprctlClient;
-	private readonly ISignalReciever _signalReciever;
-	private readonly IStateProvider _stateProvider;
+	private readonly ISignalReceiver _signalReceiver;
+	private readonly IHyprland _hyprland;
 
 	public MonitorFocus Focus { get; }
 
@@ -26,20 +26,20 @@ public class MonitorCollection : IEnumerable<Monitor>
 	public event Action<Monitor>? OnRemoved;
 	#endregion
 
-	internal MonitorCollection(IHyprctlClient hyprctlClient, ISignalReciever signalReciever, IStateProvider stateProvider)
+	internal MonitorCollection(IHyprctlClient hyprctlClient, ISignalReceiver signalReceiver, IHyprland hyprland)
 	{
 		_hyprctlClient = hyprctlClient;
-		_signalReciever = signalReciever;
-		_signalReciever.OnSignalRecieved += handleEvents;
-		_stateProvider = stateProvider;
+		_signalReceiver = signalReceiver;
+		_signalReceiver.OnSignalReceived += handleEvents;
+		_hyprland = hyprland;
 
-		Focus = new MonitorFocus(hyprctlClient, stateProvider);
+		Focus = new MonitorFocus(hyprctlClient, hyprland);
 	}
 
 	public IEnumerator<Monitor> GetEnumerator()
 	{
 		Monitor.Hyprctl[]? monitors = _hyprctlClient.Query<Monitor.Hyprctl[]>("monitors");
-		Monitor[] result = monitors == null ? Array.Empty<Monitor>() : monitors.Select(m => new Monitor(m, _stateProvider)).ToArray();
+		Monitor[] result = monitors == null ? Array.Empty<Monitor>() : monitors.Select(m => new Monitor(m, _hyprland)).ToArray();
 		return (result as IEnumerable<Monitor>).GetEnumerator();
 	}
 	IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

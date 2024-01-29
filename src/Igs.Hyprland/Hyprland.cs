@@ -1,11 +1,20 @@
-﻿using Igs.Hyprland.Ipc;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Igs.Hyprland.Input;
+using Igs.Hyprland.Ipc;
+using Igs.Hyprland.Monitors;
+using Igs.Hyprland.Windows;
+using Igs.Hyprland.Workspaces;
 
 namespace Igs.Hyprland;
 
-public interface IHyprland : IStateProvider, IDisposable
+public interface IHyprland : IDisposable
 {
-	public event Action? OnConfigReloaded;
+	MonitorCollection Monitors { get; }
+	WorkspaceCollection Workspaces { get; }
+	WindowCollection Windows { get; }
+
+	Keyboard Keyboard { get; }
+
+	event Action? OnConfigReloaded;
 
 	void Initialize();
 }
@@ -13,29 +22,34 @@ public interface IHyprland : IStateProvider, IDisposable
 public class Hyprland : IHyprland
 {
 	private readonly IHyprctlClient _hyprctlClient;
-	private readonly ISignalReciever _signalReciever;
+	private readonly ISignalReceiver _signalReceiver;
 
 	public MonitorCollection Monitors { get; }
 	public WorkspaceCollection Workspaces { get; }
 	public WindowCollection Windows { get; }
+
+	public Keyboard Keyboard { get; }
+
 
 	/// <summary>
 	/// Emitted when the config is done reloading
 	/// </summary>
 	public event Action? OnConfigReloaded;
 
-	public Hyprland(IHyprctlClient hyprctlClient, ISignalReciever signalReciever)
+	public Hyprland(IHyprctlClient hyprctlClient, ISignalReceiver signalReciever)
 	{
 		_hyprctlClient = hyprctlClient;
-		_signalReciever = signalReciever;
-		_signalReciever.OnSignalRecieved += handleSignal;
+		_signalReceiver = signalReciever;
+		_signalReceiver.OnSignalReceived += handleSignal;
 
-		Monitors = new MonitorCollection(_hyprctlClient, _signalReciever, this);
-		Workspaces = new WorkspaceCollection(_hyprctlClient, _signalReciever, this);
-		Windows = new WindowCollection(_hyprctlClient, _signalReciever, this);
+		Monitors = new MonitorCollection(_hyprctlClient, _signalReceiver, this);
+		Workspaces = new WorkspaceCollection(_hyprctlClient, _signalReceiver, this);
+		Windows = new WindowCollection(_hyprctlClient, _signalReceiver, this);
+
+		Keyboard = new Keyboard(_signalReceiver);
 	}
 
-	public void Initialize() => _signalReciever.StartListening();
+	public void Initialize() => _signalReceiver.StartListening();
 
 	private void handleSignal(string eventName, string[] args)
 	{
@@ -51,6 +65,6 @@ public class Hyprland : IHyprland
 	protected virtual void Dispose(bool disposing)
 	{
 		if (disposing)
-			_signalReciever?.Dispose();
+			_signalReceiver?.Dispose();
 	}
 }

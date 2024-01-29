@@ -1,13 +1,13 @@
 using System.Collections;
 using Igs.Hyprland.Ipc;
 
-namespace Igs.Hyprland;
+namespace Igs.Hyprland.Windows;
 
 public class WindowCollection : IEnumerable<Window>
 {
 	private readonly IHyprctlClient _hyprctlClient;
-	private readonly ISignalReciever _signalReciever;
-	private readonly IStateProvider _stateProvider;
+	private readonly ISignalReceiver _signalReceiver;
+	private readonly IHyprland _hyprland;
 
 	public WindowFocus Focus { get; }
 
@@ -15,7 +15,7 @@ public class WindowCollection : IEnumerable<Window>
 	/// <summary>
 	/// Emitted on the active window being changed.
 	/// </summary>
-	public event Action<Window>? OnActiveWindowChanged;
+	public event Action<Window>? OnActiveChanged;
 	/// <summary>
 	/// Emitted when a window is opened.
 	/// </summary>
@@ -50,20 +50,20 @@ public class WindowCollection : IEnumerable<Window>
 	public event Action<Window>? OnMinimizedStateChangeRequested;
 	#endregion
 
-	internal WindowCollection(IHyprctlClient hyprctlClient, ISignalReciever signalReciever, IStateProvider stateProvider)
+	internal WindowCollection(IHyprctlClient hyprctlClient, ISignalReceiver signalReceiver, IHyprland hyprland)
 	{
 		_hyprctlClient = hyprctlClient;
-		_signalReciever = signalReciever;
-		_signalReciever.OnSignalRecieved += handleEvents;
-		_stateProvider = stateProvider;
+		_signalReceiver = signalReceiver;
+		_signalReceiver.OnSignalReceived += handleEvents;
+		_hyprland = hyprland;
 
-		Focus = new WindowFocus(hyprctlClient, stateProvider);
+		Focus = new WindowFocus(hyprctlClient, hyprland);
 	}
 
 	public IEnumerator<Window> GetEnumerator()
 	{
 		Window.Hyprctl[]? windows = _hyprctlClient.Query<Window.Hyprctl[]>("clients");
-		Window[] result = windows == null ? Array.Empty<Window>() : windows.Select(w => new Window(w, _stateProvider)).ToArray();
+		Window[] result = windows == null ? Array.Empty<Window>() : windows.Select(w => new Window(w, _hyprland)).ToArray();
 		return (result as IEnumerable<Window>).GetEnumerator();
 	}
 	IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
@@ -71,7 +71,7 @@ public class WindowCollection : IEnumerable<Window>
 	{
 		Action<Window>? @delegate = eventName switch
 		{
-			"activewindowv2" => OnActiveWindowChanged,
+			"activewindowv2" => OnActiveChanged,
 			"openwindow" => OnOpened,
 			"closewindow" => OnClosed,
 			"movewindow" => OnMovedToWorkspace,
