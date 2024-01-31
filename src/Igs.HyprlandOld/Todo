@@ -1,0 +1,5 @@
+closewindow movetoworkspace movetoworkspacesilent togglefloating fullscreen pin movefocus movewindow swapwindow focuswindow focusurgentorlast
+workspace moveworkspacetomonitor togglespecialworkspace 
+focusmonitor 
+
+submap

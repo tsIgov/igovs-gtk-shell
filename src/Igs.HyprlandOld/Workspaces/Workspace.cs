@@ -1,3 +1,5 @@
+using System.Xml.Serialization;
+using Igs.Hyprland.Ipc;
 using Igs.Hyprland.Windows;
 using Monitor = Igs.Hyprland.Monitors.Monitor;
 
@@ -6,6 +8,7 @@ namespace Igs.Hyprland.Workspaces;
 public class Workspace
 {
 	private readonly IHyprland _hyprland;
+	private readonly IHyprctlClient _hyprctl;
 	private string? _lastWindowAddress;
 	private int? _monitorId { get; }
 
@@ -17,9 +20,10 @@ public class Workspace
 	public Window? LastWindow => _lastWindowAddress != null ? _hyprland.Windows.FirstOrDefault(x => x.Address == _lastWindowAddress) : null;
 	public Monitor? Monitor => _monitorId.HasValue ? _hyprland.Monitors.SingleOrDefault(x => x.Id == _monitorId.Value) : null;
 
-	internal Workspace(Hyprctl workspace, IHyprland hyprland)
+	internal Workspace(Hyprctl workspace, IHyprland hyprland, IHyprctlClient hyprctl)
 	{
 		_hyprland = hyprland;
+		_hyprctl = hyprctl;
 
 		Id = workspace.Id;
 		Name = workspace.Name;
@@ -28,6 +32,8 @@ public class Workspace
 		_monitorId = workspace.MonitorId;
 		_lastWindowAddress = workspace.LastWindow;
 	}
+
+	public void Focus() => _hyprctl.Dispatch($"workspace {Id}");
 
 	internal record HyprctlReference(int Id, string Name);
 

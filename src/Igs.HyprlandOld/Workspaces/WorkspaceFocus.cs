@@ -17,7 +17,7 @@ public class WorkspaceFocus
 			if (workspace == null)
 				return null;
 
-			Workspace result = new Workspace(workspace, _hyprland);
+			Workspace result = new Workspace(workspace, _hyprland, _hyprctlClient);
 			return result;
 		}
 	}

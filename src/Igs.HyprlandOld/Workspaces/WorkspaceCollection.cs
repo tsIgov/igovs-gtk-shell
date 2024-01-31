@@ -56,7 +56,7 @@ public class WorkspaceCollection : IEnumerable<Workspace>
 	public IEnumerator<Workspace> GetEnumerator()
 	{
 		Workspace.Hyprctl[]? workspaces = _hyprctlClient.Query<Workspace.Hyprctl[]>("workspaces");
-		Workspace[] result = workspaces == null ? Array.Empty<Workspace>() : workspaces.Select(ws => new Workspace(ws, _hyprland)).ToArray();
+		Workspace[] result = workspaces == null ? Array.Empty<Workspace>() : workspaces.Select(ws => new Workspace(ws, _hyprland, _hyprctlClient)).ToArray();
 		return (result as IEnumerable<Workspace>).GetEnumerator();
 	}
 	IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
