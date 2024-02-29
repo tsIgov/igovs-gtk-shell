@@ -1,7 +1,8 @@
 ﻿
+using System.Text.Json;
 using Igs.Hyprland;
+using Igs.TypedIds;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 Gtk.Application.Init ();
 
@@ -17,35 +18,53 @@ Gtk.Application.Init ();
 
 ServiceCollection services = new();
 services
-	.AddHyprland()
-	.AddLogging(logging => logging.AddConsole());
+	.AddSingleton<ISignatureProvider, SignatureProvider>()
+	.AddSingleton<IHyprctlClient, HyprctlClient>()
+	.AddSingleton<ISignalReceiver, SignalReceiver>()
+	.AddSingleton<Hyprland>()
+	.AddSingleton<JsonSerializerOptions>(services =>
+	{
+		JsonSerializerOptions options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+		options.Converters.Add(new TypedIdJsonConverterFactory());
+		return options;
+	});
+
+
+
+
+
+
+
 
 ServiceProvider serviceProvider = services.BuildServiceProvider();
 
 using IServiceScope scope = serviceProvider.CreateScope();
 
-IHyprland hyprland = scope.ServiceProvider.GetRequiredService<IHyprland>();
-hyprland.Initialize();
+Hyprland hyprland = scope.ServiceProvider.GetRequiredService<Hyprland>();
 
-for (int i = 0; i < Gdk.Display.Default.NMonitors; i++)
-{
-	Gdk.Monitor monitor = Gdk.Display.Default.GetMonitor(i);
-	showAllPerMonitor(monitor);
-}
 
 Gtk.Application.Run();
 
 
-void showAllPerMonitor(Gdk.Monitor monitor)
-{
-	foreach (Gtk.Widget widget in registerPerMonitor(monitor))
-		widget.ShowAll();
-}
+
+
+// for (int i = 0; i < Gdk.Display.Default.NMonitors; i++)
+// {
+// 	Gdk.Monitor monitor = Gdk.Display.Default.GetMonitor(i);
+// 	showAllPerMonitor(monitor);
+// }
+
+
+// void showAllPerMonitor(Gdk.Monitor monitor)
+// {
+// 	foreach (Gtk.Widget widget in registerPerMonitor(monitor))
+// 		widget.ShowAll();
+// }
 
 
 
 
-IEnumerable<Gtk.Widget> registerPerMonitor(Gdk.Monitor monitor)
-{
-	yield return new Statusbar(monitor);
-}
+// IEnumerable<Gtk.Widget> registerPerMonitor(Gdk.Monitor monitor)
+// {
+// 	yield return new Statusbar(monitor);
+// }

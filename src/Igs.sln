@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Igs.Hyprland", "Igs.Hyprlan
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Igs.HyprlandOld", "Igs.HyprlandOld\Igs.HyprlandOld.csproj", "{5237D726-7A37-4A28-B220-4A85329D971C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Igs.TypedIds", "Igs.TypedIds\Igs.TypedIds.csproj", "{AECE704B-8CD4-4BED-957A-3D0EFC79538C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{5237D726-7A37-4A28-B220-4A85329D971C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5237D726-7A37-4A28-B220-4A85329D971C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5237D726-7A37-4A28-B220-4A85329D971C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AECE704B-8CD4-4BED-957A-3D0EFC79538C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AECE704B-8CD4-4BED-957A-3D0EFC79538C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AECE704B-8CD4-4BED-957A-3D0EFC79538C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AECE704B-8CD4-4BED-957A-3D0EFC79538C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -15,7 +15,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../Igs.Hyprland/Igs.HyprlandOld.csproj" />
+    <ProjectReference Include="../Igs.Hyprland/Igs.Hyprland.csproj" />
+    <ProjectReference Include="..\Igs.TypedIds\Igs.TypedIds.csproj" />
   </ItemGroup>
 
 </Project>

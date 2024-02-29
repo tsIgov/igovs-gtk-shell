@@ -7,17 +7,19 @@ namespace Igs.Hyprland;
 public interface IHyprctlClient
 {
 	T? Query<T>(string query);
-	bool Dispatch(string command);
+	bool Execute(string command);
 }
 
 public class HyprctlClient : IHyprctlClient
 {
 	private readonly string _hyprlandInstanceSignature;
+	private readonly JsonSerializerOptions _serializerOptions;
 	private readonly ILogger<HyprctlClient>? _logger;
 
-	public HyprctlClient(ISignatureProvider signatureProvider, ILoggerFactory? loggerFactory = null)
+	public HyprctlClient(ISignatureProvider signatureProvider, JsonSerializerOptions serializerOptions, ILoggerFactory? loggerFactory = null)
 	{
 		_hyprlandInstanceSignature = signatureProvider.GetSignature();
+		_serializerOptions = serializerOptions;
 		_logger = loggerFactory?.CreateLogger<HyprctlClient>();
 	}
 
@@ -28,11 +30,11 @@ public class HyprctlClient : IHyprctlClient
 		if (string.IsNullOrWhiteSpace(rawResponse))
 			return default;
 
-		T? response = JsonSerializer.Deserialize<T>(rawResponse, new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
+		T? response = JsonSerializer.Deserialize<T>(rawResponse, _serializerOptions)!;
 		return response;
 	}
 
-	public bool Dispatch(string command)
+	public bool Execute(string command)
 	{
 		string response = sendMessage(command);
 		if (response != "ok")
